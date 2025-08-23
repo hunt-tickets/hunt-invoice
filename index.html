@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Envío de Factura - Hunt Tickets</title>
+    <meta name="description" content="Formulario oficial de Hunt Tickets para enviar facturas de manera rápida y segura. Complete sus datos y adjunte su factura." />
+    <meta name="keywords" content="hunt tickets, factura, invoice, envío, formulario" />
+    <meta name="author" content="Hunt Tickets" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Envío de Factura - Hunt Tickets" />
+    <meta property="og:description" content="Formulario oficial para enviar facturas a Hunt Tickets" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+    <meta property="og:site_name" content="Hunt Tickets" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Envío de Factura - Hunt Tickets" />
+    <meta name="twitter:description" content="Formulario oficial para enviar facturas a Hunt Tickets" />
+    <meta name="twitter:image" content="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+    <link rel="apple-touch-icon" href="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    
+    
+    <!-- Security -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://db.hunt-tickets.com data:; connect-src 'self';" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
+  </head>
+  <body>
+    <div id="app">
+      <section class="stripe-section"></section>
+      
+      <main class="container">
+        <header class="form-header">
+          <img src="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" alt="Hunt Tickets Logo" class="form-logo">
+          <h1 data-es="Envío de Factura" data-en="Invoice Submission">Envío de Factura</h1>
+          <p data-es="Complete el formulario para enviar su factura" data-en="Complete the form to submit your invoice">Complete el formulario para enviar su factura</p>
+        </header>
+
+        <section class="intro-section">
+          <div class="intro-content">
+            <div class="intro-header">
+              <h3 data-es="Antes de comenzar" data-en="Before you start">Antes de comenzar</h3>
+              <div class="header-controls">
+                <div class="language-toggle">
+                  <button type="button" class="lang-btn active" data-lang="es">ES</button>
+                  <button type="button" class="lang-btn" data-lang="en">EN</button>
+                </div>
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                  <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                  <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p data-es="Este proceso toma aproximadamente 1-2 minutos. Asegúrese de tener su factura o documento listo para cargar." data-en="This process takes approximately 1-2 minutes. Make sure you have your invoice or document ready to upload.">Este proceso toma aproximadamente 1-2 minutos. Asegúrese de tener su factura o documento listo para cargar.</p>
+            
+            <div class="intro-requirements">
+              <h4 data-es="Documentos aceptados:" data-en="Accepted documents:">Documentos aceptados:</h4>
+              <ul>
+                <li data-es="Factura en formato PDF o imagen" data-en="Invoice in PDF or image format">Factura en formato PDF o imagen</li>
+                <li data-es="Formatos: JPG, PNG, PDF (máximo 5MB)" data-en="Formats: JPG, PNG, PDF (maximum 5MB)">Formatos: JPG, PNG, PDF (máximo 5MB)</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        
+        <form id="invoice-form" class="invoice-form" novalidate>
+          <div class="form-group">
+            <label for="fullName" class="form-label">
+              <span data-es="Nombre Completo" data-en="Full Name">Nombre Completo</span> <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="fullName" 
+              name="fullName" 
+              class="form-input" 
+              required 
+              aria-describedby="fullName-error"
+              placeholder="Ingrese su nombre completo"
+              data-placeholder-es="Ingrese su nombre completo"
+              data-placeholder-en="Enter your full name"
+            />
+            <div id="fullName-error" class="error-message" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="form-label">
+              <span data-es="Correo Electrónico" data-en="Email Address">Correo Electrónico</span> <span class="required">*</span>
+            </label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-input" 
+              required 
+              aria-describedby="email-error"
+              placeholder="ejemplo@correo.com"
+              data-placeholder-es="ejemplo@correo.com"
+              data-placeholder-en="example@email.com"
+            />
+            <div id="email-error" class="error-message" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="description" class="form-label">
+              <span data-es="Descripción" data-en="Description">Descripción</span>
+              <span class="form-hint" data-es="Opcional - Describa el contenido de la factura" data-en="Optional - Describe the content of the invoice">Opcional - Describa el contenido de la factura</span>
+            </label>
+            <textarea 
+              id="description" 
+              name="description" 
+              class="form-textarea" 
+              aria-describedby="description-error"
+              placeholder="Describa el contenido de su factura..."
+              data-placeholder-es="Describa el contenido de su factura..."
+              data-placeholder-en="Describe the content of your invoice..."
+              rows="3"
+            ></textarea>
+            <div id="description-error" class="error-message" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="invoice" class="form-label">
+              <span data-es="Factura" data-en="Invoice">Factura</span> <span class="required">*</span>
+            </label>
+            <div class="file-input-wrapper">
+              <input 
+                type="file" 
+                id="invoice" 
+                name="invoice" 
+                class="form-file" 
+                required
+                accept=".jpg,.jpeg,.png,.pdf"
+                aria-describedby="invoice-help"
+              />
+              <div class="file-input-display">
+                <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17,8 12,3 7,8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span class="file-text">Seleccionar factura o arrastrar aquí</span>
+              </div>
+            </div>
+            <div id="invoice-help" class="form-hint" data-es="Formatos permitidos: JPG, PNG, PDF. Máximo 5MB." data-en="Allowed formats: JPG, PNG, PDF. Maximum 5MB.">Formatos permitidos: JPG, PNG, PDF. Máximo 5MB.</div>
+            <div id="file-list" class="file-list"></div>
+            <div id="invoice-error" class="error-message" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="form-policies">
+            <div class="policy-checkboxes">
+              <label class="checkbox-container">
+                <input type="checkbox" id="acceptTerms" required>
+                <span class="checkmark"></span>
+                <span class="checkbox-text">
+                  <span data-es="He leído y acepto los" data-en="I have read and accept the">He leído y acepto los</span>
+                  <a href="https://www.hunt-tickets.com/resources/terms-and-conditions" target="_blank" class="policy-link" data-es="Términos y Condiciones" data-en="Terms and Conditions">Términos y Condiciones</a>
+                  <span data-es="y la" data-en="and the">y la</span>
+                  <a href="https://www.hunt-tickets.com/resources/privacy" target="_blank" class="policy-link" data-es="Política de Privacidad" data-en="Privacy Policy">Política de Privacidad</a>
+                </span>
+              </label>
+              <div id="acceptTerms-error" class="error-message" role="alert" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+              <span class="btn-text" data-es="Enviar Factura" data-en="Submit Invoice">Enviar Factura</span>
+              <div class="btn-loader" aria-hidden="true">
+                <div class="spinner"></div>
+              </div>
+            </button>
+          </div>
+        </form>
+
+        <div id="success-message" class="success-message" role="alert" aria-live="polite" style="display: none;">
+          <svg class="success-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22,4 12,14.01 9,11.01"></polyline>
+          </svg>
+          <div>
+            <h3 data-es="Factura Enviada" data-en="Invoice Submitted">Factura Enviada</h3>
+            <p data-es="Su factura ha sido enviada correctamente. Recibirá una confirmación por correo electrónico." data-en="Your invoice has been submitted successfully. You will receive a confirmation email.">Su factura ha sido enviada correctamente. Recibirá una confirmación por correo electrónico.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

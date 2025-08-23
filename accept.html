@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Factura Confirmada - Hunt Tickets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="app">
+<section class="stripe-section"></section>
+<main class="container">
+<header class="form-header">
+<img src="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" alt="Hunt Tickets Logo" class="form-logo">
+<h1>Factura Confirmada</h1>
+<p>Su factura está siendo procesada</p>
+</header>
+<section class="confirmation-section">
+<div class="confirmation-content">
+<div class="confirmation-details">
+<div class="next-steps-card">
+<h3>Próximos Pasos</h3>
+<ul class="steps-list">
+<li>
+<div class="step-icon">📧</div>
+<div class="step-content">
+<strong>Confirmación por Email</strong>
+<p>Le hemos enviado un correo de confirmación</p>
+</div>
+</li>
+<li>
+<div class="step-icon">📋</div>
+<div class="step-content">
+<strong>Revisión del Equipo</strong>
+<p>Revisaremos su factura en 2-4 horas</p>
+</div>
+</li>
+<li>
+<div class="step-icon">✅</div>
+<div class="step-content">
+<strong>Procesamiento</strong>
+<p>Procesaremos según los términos acordados</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="confirmation-actions">
+<button type="button" class="btn btn-primary" onclick="window.location.href='/'">
+<span>Enviar Otra Factura</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+<script type="module" src="/src/confirmation.js"></script>
+</body>
+</html>

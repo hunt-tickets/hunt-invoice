@@ -1,0 +1,20 @@
+{
+  "name": "hunt-invoice-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
+  },
+  "devDependencies": {
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "@types/three": "^0.179.0",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.179.1"
+  }
+}
