@@ -11,6 +11,6 @@ export default defineConfig({
     }
   },
   preview: {
-    allowedHosts: ['hunt-invoice-production.up.railway.app', 'invoice.hunt-tickets.com']
+    allowedHosts: ['hunt-invoice-production.up.railway.app', 'invoice.hunt-tickets.com', 'new-invoice.hunt-tickets.com']
   }
 })
