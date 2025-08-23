@@ -287,6 +287,27 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.file-only-group {
+  margin-bottom: 2rem;
+}
+
+.file-input-large .file-input-display {
+  padding: 3rem 2rem;
+  min-height: 200px;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-input-large .upload-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.file-input-large .file-text {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
 .form-label {
   display: block;
   font-weight: 500;
@@ -557,6 +578,15 @@ body {
   color: var(--accent-primary-hover);
 }
 
+/* Dark mode: Make policy links lighter */
+:root .policy-link {
+  color: #b0b0b0;
+}
+
+:root .policy-link:hover {
+  color: #d0d0d0;
+}
+
 .form-actions {
   margin-top: 1rem;
 }
@@ -596,6 +626,17 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+[data-theme="light"] .btn-primary {
+  background: #212529;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(33, 37, 41, 0.1);
+}
+
+[data-theme="light"] .btn-primary:hover:not(:disabled) {
+  background: #343a40;
+  box-shadow: 0 8px 24px rgba(33, 37, 41, 0.15);
 }
 
 .btn-text {
