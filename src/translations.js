@@ -48,7 +48,15 @@ export const translations = {
     'file-selected': 'archivo seleccionado',
     'files-selected': 'archivos seleccionados',
     'invalid-input': 'Entrada no válida detectada.',
-    'invalid-format': 'Formato de entrada no válido.'
+    'invalid-format': 'Formato de entrada no válido.',
+    
+    // Webhook error messages
+    'invalid-data-error': 'Los datos enviados son inválidos. Por favor, revise el formulario.',
+    'auth-error': 'Error de autenticación. Por favor, contacte al soporte.',
+    'rate-limit-error': 'Demasiadas solicitudes. Por favor, espere un momento.',
+    'server-error': 'Error del servidor. Por favor, inténtelo más tarde.',
+    'timeout-error': 'La solicitud tardó demasiado. Por favor, inténtelo de nuevo.',
+    'network-error': 'Error de conexión. Verifique su conexión a internet.'
   },
   
   en: {
@@ -100,6 +108,14 @@ export const translations = {
     'file-selected': 'file selected',
     'files-selected': 'files selected',
     'invalid-input': 'Invalid input detected.',
-    'invalid-format': 'Invalid input format.'
+    'invalid-format': 'Invalid input format.',
+    
+    // Webhook error messages
+    'invalid-data-error': 'The submitted data is invalid. Please check the form.',
+    'auth-error': 'Authentication error. Please contact support.',
+    'rate-limit-error': 'Too many requests. Please wait a moment.',
+    'server-error': 'Server error. Please try again later.',
+    'timeout-error': 'The request took too long. Please try again.',
+    'network-error': 'Connection error. Check your internet connection.'
   }
 }

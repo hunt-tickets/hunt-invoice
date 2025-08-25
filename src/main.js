@@ -1,5 +1,6 @@
 import './style.css'
 import { translations } from './translations.js'
+import { getWebhookConfig, validateWebhookConfig } from './config.js'
 
 class InvoiceForm {
   constructor() {
@@ -14,6 +15,13 @@ class InvoiceForm {
     this.lastSubmissionTime = 0
     this.submissionAttempts = 0
     this.maxAttemptsPerMinute = 5
+    
+    // Webhook configuration
+    this.webhookConfig = getWebhookConfig()
+    validateWebhookConfig(this.webhookConfig)
+    
+    // Session security
+    this.sessionId = this.generateSessionId()
     
     this.init()
   }
@@ -131,17 +139,17 @@ class InvoiceForm {
     })
   }
 
-  handleFileSelect(e) {
+  async handleFileSelect(e) {
     const file = e.target.files[0]
     
-    if (file && this.validateFile(file)) {
+    if (file && await this.validateFile(file)) {
       this.selectedFile = file
       this.updateFileDisplay()
       this.updateFileInputText()
     }
   }
 
-  validateFile(file) {
+  async validateFile(file) {
     const maxSize = 5 * 1024 * 1024 // 5MB
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf']
@@ -175,6 +183,14 @@ class InvoiceForm {
     if (executableExtensions.some(ext => sanitizedName.toLowerCase().includes(ext))) {
       this.logSecurityEvent('file', file.name, 'Executable file detected')
       this.showError('invoice', `"${sanitizedName}" tipo de archivo no permitido por seguridad`)
+      return false
+    }
+    
+    // Security: Validate actual file content
+    const isValidContent = await this.validateFileContent(file)
+    if (!isValidContent) {
+      this.logSecurityEvent('file', file.name, 'File content does not match declared type')
+      this.showError('invoice', `"${sanitizedName}" el contenido del archivo no coincide con el formato declarado`)
       return false
     }
     
@@ -341,58 +357,162 @@ class InvoiceForm {
     this.setLoading(true)
     
     try {
+      let fileUploadResult = null
+      
+      // Upload file to storage first
+      if (this.selectedFile) {
+        console.info('Uploading file to storage before webhook submission')
+        fileUploadResult = await this.uploadFileToStorage(this.selectedFile)
+      }
+      
       const formData = new FormData()
       
       // Security: Sanitize all form data before submission
       const formFields = new FormData(this.form)
       for (let [key, value] of formFields.entries()) {
-        if (typeof value === 'string') {
+        if (typeof value === 'string' && key !== 'invoice') {
           formData.append(key, this.sanitizeInput(value))
-        } else {
-          formData.append(key, value)
         }
       }
       
-      // Add the selected file
-      if (this.selectedFile) {
-        formData.append('invoice', this.selectedFile)
+      // Add file information instead of the actual file
+      if (fileUploadResult) {
+        formData.append('fileInfo', JSON.stringify({
+          fileName: fileUploadResult.fileName,
+          url: fileUploadResult.url,
+          uuid: fileUploadResult.uuid,
+          extension: fileUploadResult.extension,
+          originalName: fileUploadResult.originalName,
+          size: fileUploadResult.size,
+          type: fileUploadResult.type,
+          uploadedAt: new Date().toISOString()
+        }))
       }
       
       // Log submission attempt
       console.info('Invoice submission attempt', {
         timestamp: new Date().toISOString(),
         fields: Array.from(formData.keys()),
-        hasFile: !!this.selectedFile
+        hasFile: !!this.selectedFile,
+        fileUploaded: !!fileUploadResult
       })
       
-      // Simulate form submission
-      await this.simulateSubmission(formData)
+      // Submit to n8n webhook
+      const result = await this.submitToWebhook(formData)
       
-      this.showSuccess()
+      this.showSuccess(result)
       this.resetForm()
       
     } catch (error) {
       console.error('Error submitting form:', error)
-      this.showError('form', this.t('form-error'))
+      
+      // Handle specific errors including file upload errors
+      let errorMessage = this.t('form-error')
+      
+      if (error.message.includes('Failed to upload file')) {
+        errorMessage = 'Error al subir el archivo. Intente nuevamente.'
+      } else if (error.message.includes('Storage upload failed')) {
+        errorMessage = 'Error en el almacenamiento del archivo. Intente nuevamente.'
+      } else if (error.message.includes('HTTP 400')) {
+        errorMessage = this.t('invalid-data-error')
+      } else if (error.message.includes('HTTP 401') || error.message.includes('HTTP 403')) {
+        errorMessage = this.t('auth-error')
+      } else if (error.message.includes('HTTP 413')) {
+        errorMessage = this.t('file-too-large')
+      } else if (error.message.includes('HTTP 429')) {
+        errorMessage = this.t('rate-limit-error')
+      } else if (error.message.includes('HTTP 5')) {
+        errorMessage = this.t('server-error')
+      } else if (error.message.includes('timeout') || error.name === 'AbortError') {
+        errorMessage = this.t('timeout-error')
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+        errorMessage = this.t('network-error')
+      }
+      
+      this.showError('form', errorMessage)
     } finally {
       this.setLoading(false)
     }
   }
 
-  async simulateSubmission(formData) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Invoice submission data:')
-        for (let [key, value] of formData.entries()) {
-          if (value instanceof File) {
-            console.log(`${key}:`, `File: ${value.name} (${value.size} bytes)`)
-          } else {
-            console.log(`${key}:`, value)
-          }
+  async submitToWebhook(formData) {
+    let lastError = null
+    
+    for (let attempt = 0; attempt <= this.webhookConfig.retries; attempt++) {
+      try {
+        console.info(`Sending invoice to n8n webhook (attempt ${attempt + 1}/${this.webhookConfig.retries + 1})`)
+        
+        const headers = {
+          'Accept': 'application/json'
         }
-        resolve()
-      }, 2000)
-    })
+        
+        // Add authentication if configured
+        if (this.webhookConfig.authToken) {
+          headers['Authorization'] = `Bearer ${this.webhookConfig.authToken}`
+        }
+        
+        // Add metadata for n8n processing
+        const metadata = {
+          timestamp: new Date().toISOString(),
+          language: this.currentLang,
+          userAgent: navigator.userAgent,
+          source: 'hunt-invoice-form',
+          formVersion: '1.0.0',
+          sessionId: this.sessionId,
+          clientFingerprint: this.generateClientFingerprint()
+        }
+        
+        formData.append('metadata', JSON.stringify(metadata))
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), this.webhookConfig.timeout)
+        
+        const response = await fetch(this.webhookConfig.url, {
+          method: 'POST',
+          headers,
+          body: formData,
+          signal: controller.signal
+        })
+        
+        clearTimeout(timeoutId)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const result = await response.json()
+        
+        console.info('Invoice successfully sent to n8n:', {
+          status: result.status || 'success',
+          processingId: result.processingId || null,
+          timestamp: new Date().toISOString()
+        })
+        
+        return result
+        
+      } catch (error) {
+        lastError = error
+        
+        if (error.name === 'AbortError') {
+          console.warn(`Webhook timeout on attempt ${attempt + 1}`)
+        } else {
+          console.warn(`Webhook error on attempt ${attempt + 1}:`, error.message)
+        }
+        
+        // Don't retry on client errors (4xx)
+        if (error.message.includes('HTTP 4')) {
+          break
+        }
+        
+        // Wait before retry (exponential backoff)
+        if (attempt < this.webhookConfig.retries) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+        }
+      }
+    }
+    
+    // All attempts failed
+    throw new Error(`Failed to submit invoice after ${this.webhookConfig.retries + 1} attempts: ${lastError.message}`)
   }
 
   setLoading(loading) {
@@ -405,7 +525,17 @@ class InvoiceForm {
     }
   }
 
-  showSuccess() {
+  showSuccess(result) {
+    // Update success message with processing information if available
+    if (result && result.processingId) {
+      const successText = this.successMessage.querySelector('p')
+      const currentText = successText.getAttribute(`data-${this.currentLang}`)
+      const processingInfo = this.currentLang === 'es' 
+        ? ` ID de procesamiento: ${result.processingId}`
+        : ` Processing ID: ${result.processingId}`
+      successText.textContent = currentText + processingInfo
+    }
+    
     this.successMessage.style.display = 'flex'
     this.successMessage.scrollIntoView({ behavior: 'smooth' })
   }
@@ -477,6 +607,131 @@ class InvoiceForm {
 
   t(key) {
     return translations[this.currentLang][key] || key
+  }
+
+  // Security: Generate session ID for tracking
+  generateSessionId() {
+    const timestamp = Date.now().toString(36)
+    const randomPart = Math.random().toString(36).substring(2)
+    return `sess_${timestamp}_${randomPart}`
+  }
+
+  // Security: Generate client fingerprint for basic validation
+  generateClientFingerprint() {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.textBaseline = 'top'
+    ctx.font = '14px Arial'
+    ctx.fillText('Client fingerprint', 2, 2)
+    
+    const fingerprint = {
+      screen: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language: navigator.language,
+      platform: navigator.platform,
+      canvasHash: canvas.toDataURL().slice(-50)
+    }
+    
+    return btoa(JSON.stringify(fingerprint)).substring(0, 32)
+  }
+
+  // Generate UUID v4
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0
+      const v = c == 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
+  }
+
+  // Get file extension from filename
+  getFileExtension(filename) {
+    return filename.toLowerCase().substring(filename.lastIndexOf('.'))
+  }
+
+  // Upload file to storage endpoint
+  async uploadFileToStorage(file) {
+    const uuid = this.generateUUID()
+    const extension = this.getFileExtension(file.name)
+    const fileName = `${uuid}${extension}`
+    const uploadUrl = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}`
+    
+    try {
+      console.info('Uploading file to storage:', { fileName, size: file.size, type: file.type })
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Storage upload failed: HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const result = {
+        success: true,
+        fileName,
+        url: uploadUrl,
+        uuid,
+        extension: extension.substring(1), // Remove the dot
+        originalName: file.name,
+        size: file.size,
+        type: file.type
+      }
+      
+      console.info('File successfully uploaded to storage:', result)
+      return result
+      
+    } catch (error) {
+      console.error('Error uploading file to storage:', error)
+      throw new Error(`Failed to upload file: ${error.message}`)
+    }
+  }
+
+  // Security: Validate file content type beyond extension
+  async validateFileContent(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const buffer = e.target.result
+        const view = new DataView(buffer)
+        
+        // Check file signatures (magic numbers)
+        if (buffer.byteLength < 4) {
+          resolve(false)
+          return
+        }
+        
+        // PDF signature
+        if (file.type === 'application/pdf') {
+          const signature = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3))
+          resolve(signature === '%PDF')
+          return
+        }
+        
+        // JPEG signatures
+        if (file.type === 'image/jpeg') {
+          const signature = view.getUint16(0, false)
+          resolve(signature === 0xFFD8)
+          return
+        }
+        
+        // PNG signature
+        if (file.type === 'image/png') {
+          const signature = view.getUint32(0, false)
+          resolve(signature === 0x89504E47)
+          return
+        }
+        
+        resolve(false)
+      }
+      
+      reader.onerror = () => resolve(false)
+      reader.readAsArrayBuffer(file.slice(0, 16))
+    })
   }
 }
 
