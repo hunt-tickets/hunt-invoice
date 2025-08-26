@@ -920,10 +920,13 @@ class InvoiceForm {
         throw new Error(`Storage upload failed: HTTP ${response.status}: ${errorMessage}`)
       }
       
+      // Generate signed URL for the uploaded file
+      const signedUrl = await this.generateSignedUrl(fileName)
+      
       const result = {
         success: true,
         fileName,
-        url: `https://db.hunt-tickets.com/storage/v1/object/public/invoice/main/${fileName}`,
+        url: signedUrl || `https://db.hunt-tickets.com/storage/v1/object/public/invoice/main/${fileName}`,
         uuid,
         extension: isImage ? 'pdf' : this.getFileExtension(file.name).substring(1),
         originalName: file.name,
@@ -938,6 +941,40 @@ class InvoiceForm {
     } catch (error) {
       console.error('❌ Error uploading file to storage:', error)
       throw new Error(`Failed to upload file: ${error.message}`)
+    }
+  }
+
+  // Generate signed URL for file access
+  async generateSignedUrl(fileName, expiresIn = 3600) {
+    try {
+      console.info('🔐 Generating signed URL for:', fileName)
+      
+      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}?expiresIn=${expiresIn}`
+      
+      const response = await fetch(signedUrlEndpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+      
+      if (!response.ok) {
+        console.warn('⚠️ Failed to generate signed URL, falling back to public URL')
+        return null
+      }
+      
+      const data = await response.json()
+      const signedUrl = data.signedURL || data.signedUrl
+      
+      console.info('✅ Signed URL generated successfully')
+      return signedUrl
+      
+    } catch (error) {
+      console.error('❌ Error generating signed URL:', error)
+      return null
     }
   }
 
