@@ -372,9 +372,23 @@ class InvoiceForm {
     this.showProgressSection()
     
     try {
-      await this.processMultipleFiles()
-      this.showSuccess({ status: 'success', processedCount: this.selectedFiles.length })
-      this.resetForm()
+      const results = await this.processMultipleFiles()
+      const successCount = results.filter(r => r.success).length
+      const totalCount = results.length
+      
+      if (successCount > 0) {
+        this.showSuccess({ 
+          status: 'success', 
+          processedCount: successCount,
+          totalCount: totalCount,
+          hasErrors: successCount < totalCount
+        })
+      } else {
+        throw new Error('No se pudo procesar ningún archivo correctamente')
+      }
+      
+      // Reset form after a delay to show results
+      setTimeout(() => this.resetForm(), 3000)
       
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -413,8 +427,8 @@ class InvoiceForm {
     progressSection.style.display = 'block'
     progressSection.scrollIntoView({ behavior: 'smooth' })
     
-    this.updateOverallProgress(0, this.selectedFiles.length)
-    this.createFileProgressItems()
+    this.updateProgressCounter(0, this.selectedFiles.length)
+    this.resetSteps()
   }
 
   hideProgressSection() {
@@ -422,84 +436,53 @@ class InvoiceForm {
     progressSection.style.display = 'none'
   }
 
-  updateOverallProgress(completed, total) {
+  updateProgressCounter(completed, total) {
+    const progressCounter = document.getElementById('progress-counter')
     const progressFill = document.getElementById('progress-fill')
-    const progressText = document.getElementById('progress-text')
     
     const percentage = total > 0 ? (completed / total) * 100 : 0
+    progressCounter.textContent = `${completed} / ${total}`
     progressFill.style.width = `${percentage}%`
-    progressText.textContent = `${completed} de ${total} archivos procesados`
   }
 
-  createFileProgressItems() {
-    const progressList = document.getElementById('file-progress-list')
-    progressList.innerHTML = ''
+  resetSteps() {
+    const storageStep = document.getElementById('step-storage')
+    const webhookStep = document.getElementById('step-webhook')
+    const currentFile = document.getElementById('current-file')
     
-    this.selectedFiles.forEach((file, index) => {
-      const progressItem = document.createElement('div')
-      progressItem.className = 'file-progress-item'
-      progressItem.id = `progress-item-${index}`
-      
-      const sanitizedFileName = this.sanitizeInput(file.name)
-      
-      progressItem.innerHTML = `
-        <div class="file-progress-header">
-          <span class="file-progress-name">${sanitizedFileName}</span>
-          <span class="file-progress-status waiting">Esperando</span>
-        </div>
-        <div class="file-progress-steps">
-          <div class="progress-step">
-            <span class="progress-step-icon pending" id="step-convert-${index}">1</span>
-            <span>Convertir</span>
-          </div>
-          <div class="progress-step">
-            <span class="progress-step-icon pending" id="step-upload-${index}">2</span>
-            <span>Subir</span>
-          </div>
-          <div class="progress-step">
-            <span class="progress-step-icon pending" id="step-webhook-${index}">3</span>
-            <span>Enviar</span>
-          </div>
-        </div>
-      `
-      
-      progressList.appendChild(progressItem)
-    })
+    storageStep.className = 'step'
+    webhookStep.className = 'step'
+    
+    document.getElementById('storage-status').textContent = 'Preparando...'
+    document.getElementById('webhook-status').textContent = 'Esperando...'
+    currentFile.textContent = ''
+    currentFile.className = 'current-file'
   }
 
-  updateFileProgress(index, step, status, message = '') {
-    const progressItem = document.getElementById(`progress-item-${index}`)
-    const statusSpan = progressItem.querySelector('.file-progress-status')
+  updateStepStatus(step, status, message = '') {
+    const stepElement = document.getElementById(`step-${step}`)
+    const statusElement = document.getElementById(`${step}-status`)
     
-    // Update main status
-    statusSpan.textContent = message || status
-    statusSpan.className = `file-progress-status ${status.toLowerCase()}`
+    if (status === 'active') {
+      stepElement.className = 'step active'
+      statusElement.textContent = message || 'Procesando...'
+    } else if (status === 'completed') {
+      stepElement.className = 'step completed'
+      statusElement.textContent = message || 'Completado'
+    }
+  }
+
+  showCurrentFile(fileName, action = '') {
+    const currentFile = document.getElementById('current-file')
+    const sanitizedFileName = this.sanitizeInput(fileName)
     
-    // Update item appearance
-    progressItem.className = `file-progress-item ${status === 'completed' ? 'completed' : status === 'error' ? 'error' : 'processing'}`
-    
-    // Update step icons
-    const steps = ['convert', 'upload', 'webhook']
-    const currentStepIndex = steps.indexOf(step)
-    
-    steps.forEach((stepName, stepIndex) => {
-      const stepIcon = document.getElementById(`step-${stepName}-${index}`)
-      if (stepIndex < currentStepIndex) {
-        stepIcon.className = 'progress-step-icon completed'
-        stepIcon.textContent = '✓'
-      } else if (stepIndex === currentStepIndex) {
-        if (status === 'error') {
-          stepIcon.className = 'progress-step-icon error'
-          stepIcon.textContent = '✗'
-        } else if (status === 'completed') {
-          stepIcon.className = 'progress-step-icon completed'
-          stepIcon.textContent = '✓'
-        } else {
-          stepIcon.className = 'progress-step-icon processing'
-          stepIcon.textContent = stepIndex + 1
-        }
-      }
-    })
+    if (action) {
+      currentFile.textContent = `${action} ${sanitizedFileName}`
+      currentFile.className = 'current-file processing'
+    } else {
+      currentFile.textContent = sanitizedFileName
+      currentFile.className = 'current-file'
+    }
   }
 
   async processMultipleFiles() {
@@ -507,22 +490,33 @@ class InvoiceForm {
     
     let completedCount = 0
     const results = []
+    let allStorageCompleted = false
     
     for (let i = 0; i < this.selectedFiles.length; i++) {
       const file = this.selectedFiles[i]
       console.info(`📄 Processing file ${i + 1}/${this.selectedFiles.length}: ${file.name}`)
       
       try {
-        // Step 1: Convert (if needed)
-        this.updateFileProgress(i, 'convert', 'converting', 'Convirtiendo...')
-        const fileToUpload = await this.convertFileIfNeeded(file)
+        // Show current file being processed
+        this.showCurrentFile(file.name, 'Procesando')
         
-        // Step 2: Upload to Supabase
-        this.updateFileProgress(i, 'upload', 'uploading', 'Subiendo...')
+        // Step 1: Storage (Convert + Upload)
+        if (!allStorageCompleted) {
+          this.updateStepStatus('storage', 'active', 'Convirtiendo y subiendo...')
+        }
+        
+        const fileToUpload = await this.convertFileIfNeeded(file)
         const uploadResult = await this.uploadFileToStorage(file)
         
-        // Step 3: Send to webhook
-        this.updateFileProgress(i, 'webhook', 'sending', 'Enviando...')
+        // If this is the last file, mark storage as completed
+        if (i === this.selectedFiles.length - 1) {
+          this.updateStepStatus('storage', 'completed', 'Todos los archivos subidos')
+          allStorageCompleted = true
+        }
+        
+        // Step 2: Webhook processing
+        this.updateStepStatus('webhook', 'active', 'Enviando al sistema...')
+        
         const webhookData = {
           uuid: uploadResult.uuid,
           fileUrl: uploadResult.url
@@ -530,8 +524,6 @@ class InvoiceForm {
         
         const webhookResult = await this.submitToWebhook(webhookData)
         
-        // Mark as completed
-        this.updateFileProgress(i, 'webhook', 'completed', 'Completado')
         completedCount++
         
         results.push({
@@ -546,7 +538,6 @@ class InvoiceForm {
       } catch (error) {
         console.error(`❌ Error processing file ${i + 1} (${file.name}):`, error)
         
-        this.updateFileProgress(i, 'convert', 'error', 'Error')
         results.push({
           file: file.name,
           error: error.message,
@@ -555,13 +546,20 @@ class InvoiceForm {
       }
       
       // Update overall progress
-      this.updateOverallProgress(completedCount, this.selectedFiles.length)
+      this.updateProgressCounter(completedCount, this.selectedFiles.length)
       
       // Small delay between files
       if (i < this.selectedFiles.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
     }
+    
+    // Mark webhook as completed
+    this.updateStepStatus('webhook', 'completed', 'Procesamiento completado')
+    
+    // Show final summary
+    const successCount = results.filter(r => r.success).length
+    this.showCurrentFile(`Procesado: ${successCount}/${results.length} archivos`, '')
     
     console.info(`🎉 Batch processing completed: ${completedCount}/${this.selectedFiles.length} files processed successfully`)
     
@@ -613,7 +611,14 @@ class InvoiceForm {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
         
-        const result = await response.json()
+        let result
+        try {
+          const responseText = await response.text()
+          result = responseText ? JSON.parse(responseText) : { status: 'success' }
+        } catch (parseError) {
+          // If response is not JSON, treat as success if status is OK
+          result = { status: 'success' }
+        }
         
         console.info('Invoice data successfully sent to production webhook:', {
           status: result.status || 'success',
@@ -663,9 +668,16 @@ class InvoiceForm {
     const successText = this.successMessage.querySelector('p')
     
     if (result && result.processedCount) {
-      const message = this.currentLang === 'es' 
-        ? `${result.processedCount} facturas han sido procesadas y enviadas correctamente.`
-        : `${result.processedCount} invoices have been processed and submitted successfully.`
+      let message
+      if (result.hasErrors) {
+        message = this.currentLang === 'es' 
+          ? `${result.processedCount} de ${result.totalCount} facturas procesadas correctamente. Algunas facturas tuvieron errores.`
+          : `${result.processedCount} of ${result.totalCount} invoices processed successfully. Some invoices had errors.`
+      } else {
+        message = this.currentLang === 'es' 
+          ? `${result.processedCount} facturas han sido procesadas y enviadas correctamente.`
+          : `${result.processedCount} invoices have been processed and submitted successfully.`
+      }
       successText.textContent = message
     }
     
