@@ -633,9 +633,10 @@ class InvoiceForm {
           'Content-Type': 'application/json'
         }
         
-        // Add authentication if configured
-        if (this.webhookConfig.authToken) {
-          headers['Authorization'] = `Bearer ${this.webhookConfig.authToken}`
+        // Add Basic Authentication if configured
+        if (this.webhookConfig.basicAuth && this.webhookConfig.basicAuth.username && this.webhookConfig.basicAuth.password) {
+          const credentials = btoa(`${this.webhookConfig.basicAuth.username}:${this.webhookConfig.basicAuth.password}`)
+          headers['Authorization'] = `Basic ${credentials}`
         }
         
         const controller = new AbortController()

@@ -9,15 +9,21 @@ export const webhookConfig = {
   // Number of retry attempts
   retries: 2,
   
-  // Authentication token (optional)
-  authToken: import.meta.env.VITE_N8N_AUTH_TOKEN || null,
+  // Basic Auth credentials
+  basicAuth: {
+    username: import.meta.env.VITE_N8N_USERNAME || 'hunt',
+    password: import.meta.env.VITE_N8N_PASSWORD || 'hunt'
+  },
   
   // Development mode settings
   development: {
     url: 'http://localhost:5678/webhook/invoice-processing',
     timeout: 10000,
     retries: 1,
-    authToken: null
+    basicAuth: {
+      username: 'hunt',
+      password: 'hunt'
+    }
   }
 }
 
@@ -42,7 +48,7 @@ export function getWebhookConfig() {
     url: webhookConfig.url,
     timeout: webhookConfig.timeout,
     retries: webhookConfig.retries,
-    authToken: webhookConfig.authToken
+    basicAuth: webhookConfig.basicAuth
   }
 }
 
