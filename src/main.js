@@ -949,7 +949,8 @@ class InvoiceForm {
     try {
       console.info('🔐 Generating signed URL for:', fileName)
       
-      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}?expiresIn=${expiresIn}`
+      // Supabase Storage REST API endpoint for signed URLs
+      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/${fileName}`
       
       const response = await fetch(signedUrlEndpoint, {
         method: 'POST',
@@ -958,19 +959,31 @@ class InvoiceForm {
           'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          expiresIn: expiresIn
+        })
       })
       
+      console.info('📡 Signed URL response status:', response.status)
+      
       if (!response.ok) {
-        console.warn('⚠️ Failed to generate signed URL, falling back to public URL')
+        const errorText = await response.text()
+        console.warn('⚠️ Failed to generate signed URL:', errorText)
         return null
       }
       
       const data = await response.json()
-      const signedUrl = data.signedURL || data.signedUrl
+      console.info('📡 Signed URL response data:', data)
       
-      console.info('✅ Signed URL generated successfully')
-      return signedUrl
+      const signedUrl = data.signedURL || data.signedUrl || data.url
+      
+      if (signedUrl) {
+        console.info('✅ Signed URL generated successfully')
+        return signedUrl
+      } else {
+        console.warn('⚠️ No signed URL in response, falling back to public URL')
+        return null
+      }
       
     } catch (error) {
       console.error('❌ Error generating signed URL:', error)
