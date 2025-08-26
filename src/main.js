@@ -11,7 +11,7 @@ class InvoiceForm {
     this.fileList = document.getElementById('file-list')
     this.fileInputDisplay = document.querySelector('.file-input-display .file-text')
     this.successMessage = document.getElementById('success-message')
-    this.selectedFile = null
+    this.selectedFiles = []
     this.currentLang = 'es'
     this.lastSubmissionTime = 0
     this.submissionAttempts = 0
@@ -141,13 +141,18 @@ class InvoiceForm {
   }
 
   async handleFileSelect(e) {
-    const file = e.target.files[0]
+    const files = Array.from(e.target.files)
     
-    if (file && await this.validateFile(file)) {
-      this.selectedFile = file
-      this.updateFileDisplay()
-      this.updateFileInputText()
+    this.selectedFiles = []
+    
+    for (const file of files) {
+      if (await this.validateFile(file)) {
+        this.selectedFiles.push(file)
+      }
     }
+    
+    this.updateFileDisplay()
+    this.updateFileInputText()
   }
 
   async validateFile(file) {
@@ -201,37 +206,45 @@ class InvoiceForm {
   updateFileDisplay() {
     this.fileList.innerHTML = ''
     
-    if (this.selectedFile) {
+    this.selectedFiles.forEach((file, index) => {
       const fileItem = document.createElement('div')
       fileItem.className = 'file-item'
       
       // Security: Sanitize filename before displaying
-      const sanitizedFileName = this.sanitizeInput(this.selectedFile.name)
+      const sanitizedFileName = this.sanitizeInput(file.name)
       
       fileItem.innerHTML = `
         <span class="file-name">${sanitizedFileName}</span>
-        <span class="file-size">${this.formatFileSize(this.selectedFile.size)}</span>
-        <button type="button" class="file-remove" data-index="0">✕</button>
+        <span class="file-size">${this.formatFileSize(file.size)}</span>
+        <button type="button" class="file-remove" data-index="${index}">✕</button>
       `
       
       const removeBtn = fileItem.querySelector('.file-remove')
-      removeBtn.addEventListener('click', () => this.removeFile())
+      removeBtn.addEventListener('click', () => this.removeFile(index))
       
       this.fileList.appendChild(fileItem)
-    }
+    })
   }
 
   updateFileInputText() {
-    if (!this.selectedFile) {
+    if (this.selectedFiles.length === 0) {
       this.fileInputDisplay.textContent = this.t('select-invoice')
     } else {
-      this.fileInputDisplay.textContent = `1 ${this.t('file-selected')}`
+      this.fileInputDisplay.textContent = `${this.selectedFiles.length} ${this.selectedFiles.length === 1 ? 'archivo seleccionado' : 'archivos seleccionados'}`
     }
   }
 
-  removeFile() {
-    this.selectedFile = null
-    this.fileInput.value = ''
+  removeFile(index = null) {
+    if (index !== null) {
+      this.selectedFiles.splice(index, 1)
+    } else {
+      this.selectedFiles = []
+    }
+    
+    if (this.selectedFiles.length === 0) {
+      this.fileInput.value = ''
+    }
+    
     this.updateFileDisplay()
     this.updateFileInputText()
   }
@@ -323,8 +336,8 @@ class InvoiceForm {
       }
     })
 
-    // Validate file
-    if (!this.selectedFile) {
+    // Validate files
+    if (this.selectedFiles.length === 0) {
       this.showError('invoice', this.t('file-required'))
       isValid = false
     }
@@ -356,35 +369,11 @@ class InvoiceForm {
     }
     
     this.setLoading(true)
+    this.showProgressSection()
     
     try {
-      let fileUploadResult = null
-      
-      // Upload file to storage first
-      if (this.selectedFile) {
-        console.info('Uploading file to storage before webhook submission')
-        fileUploadResult = await this.uploadFileToStorage(this.selectedFile)
-      }
-      
-      // Prepare webhook data with only UUID and file URL
-      const webhookData = {
-        uuid: fileUploadResult.uuid,
-        fileUrl: fileUploadResult.url
-      }
-      
-      // Log submission attempt
-      console.info('Invoice submission attempt', {
-        timestamp: new Date().toISOString(),
-        uuid: fileUploadResult.uuid,
-        fileUrl: fileUploadResult.url,
-        hasFile: !!this.selectedFile,
-        fileUploaded: !!fileUploadResult
-      })
-      
-      // Submit to Railway webhook
-      const result = await this.submitToWebhook(webhookData)
-      
-      this.showSuccess(result)
+      await this.processMultipleFiles()
+      this.showSuccess({ status: 'success', processedCount: this.selectedFiles.length })
       this.resetForm()
       
     } catch (error) {
@@ -419,12 +408,183 @@ class InvoiceForm {
     }
   }
 
+  showProgressSection() {
+    const progressSection = document.getElementById('progress-section')
+    progressSection.style.display = 'block'
+    progressSection.scrollIntoView({ behavior: 'smooth' })
+    
+    this.updateOverallProgress(0, this.selectedFiles.length)
+    this.createFileProgressItems()
+  }
+
+  hideProgressSection() {
+    const progressSection = document.getElementById('progress-section')
+    progressSection.style.display = 'none'
+  }
+
+  updateOverallProgress(completed, total) {
+    const progressFill = document.getElementById('progress-fill')
+    const progressText = document.getElementById('progress-text')
+    
+    const percentage = total > 0 ? (completed / total) * 100 : 0
+    progressFill.style.width = `${percentage}%`
+    progressText.textContent = `${completed} de ${total} archivos procesados`
+  }
+
+  createFileProgressItems() {
+    const progressList = document.getElementById('file-progress-list')
+    progressList.innerHTML = ''
+    
+    this.selectedFiles.forEach((file, index) => {
+      const progressItem = document.createElement('div')
+      progressItem.className = 'file-progress-item'
+      progressItem.id = `progress-item-${index}`
+      
+      const sanitizedFileName = this.sanitizeInput(file.name)
+      
+      progressItem.innerHTML = `
+        <div class="file-progress-header">
+          <span class="file-progress-name">${sanitizedFileName}</span>
+          <span class="file-progress-status waiting">Esperando</span>
+        </div>
+        <div class="file-progress-steps">
+          <div class="progress-step">
+            <span class="progress-step-icon pending" id="step-convert-${index}">1</span>
+            <span>Convertir</span>
+          </div>
+          <div class="progress-step">
+            <span class="progress-step-icon pending" id="step-upload-${index}">2</span>
+            <span>Subir</span>
+          </div>
+          <div class="progress-step">
+            <span class="progress-step-icon pending" id="step-webhook-${index}">3</span>
+            <span>Enviar</span>
+          </div>
+        </div>
+      `
+      
+      progressList.appendChild(progressItem)
+    })
+  }
+
+  updateFileProgress(index, step, status, message = '') {
+    const progressItem = document.getElementById(`progress-item-${index}`)
+    const statusSpan = progressItem.querySelector('.file-progress-status')
+    
+    // Update main status
+    statusSpan.textContent = message || status
+    statusSpan.className = `file-progress-status ${status.toLowerCase()}`
+    
+    // Update item appearance
+    progressItem.className = `file-progress-item ${status === 'completed' ? 'completed' : status === 'error' ? 'error' : 'processing'}`
+    
+    // Update step icons
+    const steps = ['convert', 'upload', 'webhook']
+    const currentStepIndex = steps.indexOf(step)
+    
+    steps.forEach((stepName, stepIndex) => {
+      const stepIcon = document.getElementById(`step-${stepName}-${index}`)
+      if (stepIndex < currentStepIndex) {
+        stepIcon.className = 'progress-step-icon completed'
+        stepIcon.textContent = '✓'
+      } else if (stepIndex === currentStepIndex) {
+        if (status === 'error') {
+          stepIcon.className = 'progress-step-icon error'
+          stepIcon.textContent = '✗'
+        } else if (status === 'completed') {
+          stepIcon.className = 'progress-step-icon completed'
+          stepIcon.textContent = '✓'
+        } else {
+          stepIcon.className = 'progress-step-icon processing'
+          stepIcon.textContent = stepIndex + 1
+        }
+      }
+    })
+  }
+
+  async processMultipleFiles() {
+    console.info(`🚀 Starting batch processing of ${this.selectedFiles.length} files`)
+    
+    let completedCount = 0
+    const results = []
+    
+    for (let i = 0; i < this.selectedFiles.length; i++) {
+      const file = this.selectedFiles[i]
+      console.info(`📄 Processing file ${i + 1}/${this.selectedFiles.length}: ${file.name}`)
+      
+      try {
+        // Step 1: Convert (if needed)
+        this.updateFileProgress(i, 'convert', 'converting', 'Convirtiendo...')
+        const fileToUpload = await this.convertFileIfNeeded(file)
+        
+        // Step 2: Upload to Supabase
+        this.updateFileProgress(i, 'upload', 'uploading', 'Subiendo...')
+        const uploadResult = await this.uploadFileToStorage(file)
+        
+        // Step 3: Send to webhook
+        this.updateFileProgress(i, 'webhook', 'sending', 'Enviando...')
+        const webhookData = {
+          uuid: uploadResult.uuid,
+          fileUrl: uploadResult.url
+        }
+        
+        const webhookResult = await this.submitToWebhook(webhookData)
+        
+        // Mark as completed
+        this.updateFileProgress(i, 'webhook', 'completed', 'Completado')
+        completedCount++
+        
+        results.push({
+          file: file.name,
+          uuid: uploadResult.uuid,
+          url: uploadResult.url,
+          success: true
+        })
+        
+        console.info(`✅ File ${i + 1} completed successfully: ${file.name}`)
+        
+      } catch (error) {
+        console.error(`❌ Error processing file ${i + 1} (${file.name}):`, error)
+        
+        this.updateFileProgress(i, 'convert', 'error', 'Error')
+        results.push({
+          file: file.name,
+          error: error.message,
+          success: false
+        })
+      }
+      
+      // Update overall progress
+      this.updateOverallProgress(completedCount, this.selectedFiles.length)
+      
+      // Small delay between files
+      if (i < this.selectedFiles.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+    
+    console.info(`🎉 Batch processing completed: ${completedCount}/${this.selectedFiles.length} files processed successfully`)
+    
+    return results
+  }
+
+  async convertFileIfNeeded(file) {
+    const isImage = ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)
+    
+    if (isImage) {
+      console.info('🔄 Converting image to PDF...')
+      return await this.convertImageToPDF(file)
+    }
+    
+    return file
+  }
+
   async submitToWebhook(webhookData) {
     let lastError = null
     
     for (let attempt = 0; attempt <= this.webhookConfig.retries; attempt++) {
       try {
-        console.info(`Sending invoice data to Railway webhook (attempt ${attempt + 1}/${this.webhookConfig.retries + 1})`)
+        console.info(`Sending invoice data to production webhook (attempt ${attempt + 1}/${this.webhookConfig.retries + 1})`)
         console.info('📡 Webhook data:', webhookData)
         
         const headers = {
@@ -455,7 +615,7 @@ class InvoiceForm {
         
         const result = await response.json()
         
-        console.info('Invoice data successfully sent to Railway webhook:', {
+        console.info('Invoice data successfully sent to production webhook:', {
           status: result.status || 'success',
           uuid: webhookData.uuid,
           timestamp: new Date().toISOString()
@@ -499,14 +659,14 @@ class InvoiceForm {
   }
 
   showSuccess(result) {
-    // Update success message with processing information if available
-    if (result && result.processingId) {
-      const successText = this.successMessage.querySelector('p')
-      const currentText = successText.getAttribute(`data-${this.currentLang}`)
-      const processingInfo = this.currentLang === 'es' 
-        ? ` ID de procesamiento: ${result.processingId}`
-        : ` Processing ID: ${result.processingId}`
-      successText.textContent = currentText + processingInfo
+    // Update success message with batch processing information
+    const successText = this.successMessage.querySelector('p')
+    
+    if (result && result.processedCount) {
+      const message = this.currentLang === 'es' 
+        ? `${result.processedCount} facturas han sido procesadas y enviadas correctamente.`
+        : `${result.processedCount} invoices have been processed and submitted successfully.`
+      successText.textContent = message
     }
     
     this.successMessage.style.display = 'flex'
@@ -515,9 +675,10 @@ class InvoiceForm {
 
   resetForm() {
     this.form.reset()
-    this.selectedFile = null
+    this.selectedFiles = []
     this.updateFileDisplay()
     this.updateFileInputText()
+    this.hideProgressSection()
     
     const errorMessages = this.form.querySelectorAll('.error-message.show')
     errorMessages.forEach(error => error.classList.remove('show'))

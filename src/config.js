@@ -1,7 +1,7 @@
 // Webhook configuration for n8n integration
 export const webhookConfig = {
-  // Railway webhook URL
-  url: import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://primary-o7vi-production.up.railway.app/webhook-test/ed0bbb3c-e4df-452e-8768-767a53843a94',
+  // Production webhook URL
+  url: import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://automations.hunt-tickets.com/webhook/add-invoice',
   
   // Request timeout in milliseconds
   timeout: 30000,

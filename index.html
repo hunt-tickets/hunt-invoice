@@ -37,7 +37,7 @@
     <!-- Security -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://db.hunt-tickets.com data:; connect-src 'self' https://db.hunt-tickets.com https://primary-o7vi-production.up.railway.app;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://db.hunt-tickets.com data:; connect-src 'self' https://db.hunt-tickets.com https://automations.hunt-tickets.com;" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
   </head>
@@ -103,6 +103,7 @@
                 name="invoice" 
                 class="form-file" 
                 required
+                multiple
                 accept=".jpg,.jpeg,.png,.pdf"
                 aria-describedby="invoice-help"
               />
@@ -112,7 +113,7 @@
                   <polyline points="17,8 12,3 7,8"></polyline>
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
-                <span class="file-text">Seleccionar factura o arrastrar aquí</span>
+                <span class="file-text">Seleccionar facturas o arrastrar aquí</span>
               </div>
             </div>
             <div id="invoice-help" class="form-hint" data-es="Formatos permitidos: JPG, PNG, PDF. Máximo 5MB." data-en="Allowed formats: JPG, PNG, PDF. Maximum 5MB.">Formatos permitidos: JPG, PNG, PDF. Máximo 5MB.</div>
@@ -138,11 +139,25 @@
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" id="submit-btn">
-              <span class="btn-text" data-es="Enviar Factura" data-en="Submit Invoice">Enviar Factura</span>
+              <span class="btn-text" data-es="Enviar Facturas" data-en="Submit Invoices">Enviar Facturas</span>
               <div class="btn-loader" aria-hidden="true">
                 <div class="spinner"></div>
               </div>
             </button>
+          </div>
+          
+          <!-- Progress Section -->
+          <div id="progress-section" class="progress-section" style="display: none;">
+            <h3 data-es="Procesando Facturas" data-en="Processing Invoices">Procesando Facturas</h3>
+            <div id="overall-progress" class="overall-progress">
+              <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+              </div>
+              <span id="progress-text" class="progress-text">0 de 0 archivos procesados</span>
+            </div>
+            <div id="file-progress-list" class="file-progress-list">
+              <!-- Individual file progress items will be added here -->
+            </div>
           </div>
         </form>
 
