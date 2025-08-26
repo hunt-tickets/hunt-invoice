@@ -2,10 +2,43 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Factura Confirmada - Hunt Tickets</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- SEO Meta Tags -->
+<title>Factura Enviada - Hunt Tickets</title>
+<meta name="description" content="Su factura ha sido enviada correctamente a Hunt Tickets" />
+<meta name="keywords" content="hunt tickets, factura enviada, confirmación" />
+<meta name="author" content="Hunt Tickets" />
+<meta name="robots" content="index, follow" />
+
+<!-- Open Graph Meta Tags -->
+<meta property="og:title" content="Factura Enviada - Hunt Tickets" />
+<meta property="og:description" content="Su factura ha sido enviada correctamente" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://db.hunt-tickets.com/storage/v1/object/public/default/assets/bg_pattern.jpg" />
+<meta property="og:site_name" content="Hunt Tickets" />
+
+<!-- Twitter Card Meta Tags -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Factura Enviada - Hunt Tickets" />
+<meta name="twitter:description" content="Su factura ha sido enviada correctamente" />
+<meta name="twitter:image" content="https://db.hunt-tickets.com/storage/v1/object/public/default/assets/bg_pattern.jpg" />
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+<link rel="apple-touch-icon" href="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" />
+
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
+<!-- Security -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff" />
+<meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://db.hunt-tickets.com data:; connect-src 'self';" />
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+<meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
 </head>
 <body>
 <div id="app">
@@ -13,42 +46,24 @@
 <main class="container">
 <header class="form-header">
 <img src="https://db.hunt-tickets.com/storage/v1/object/public/default/logos/mini_white_logo.png" alt="Hunt Tickets Logo" class="form-logo">
-<h1>Factura Confirmada</h1>
-<p>Su factura está siendo procesada</p>
+<h1 data-es="Factura Enviada" data-en="Invoice Submitted">Factura Enviada</h1>
+<p data-es="Su factura ha sido procesada correctamente" data-en="Your invoice has been processed successfully">Su factura ha sido procesada correctamente</p>
 </header>
-<section class="confirmation-section">
-<div class="confirmation-content">
-<div class="confirmation-details">
-<div class="next-steps-card">
-<h3>Próximos Pasos</h3>
-<ul class="steps-list">
-<li>
-<div class="step-icon">📧</div>
-<div class="step-content">
-<strong>Confirmación por Email</strong>
-<p>Le hemos enviado un correo de confirmación</p>
+
+<section class="success-section">
+<div class="success-container">
+<div class="success-icon-large">
+<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+<polyline points="22,4 12,14.01 9,11.01"></polyline>
+</svg>
 </div>
-</li>
-<li>
-<div class="step-icon">📋</div>
-<div class="step-content">
-<strong>Revisión del Equipo</strong>
-<p>Revisaremos su factura en 2-4 horas</p>
-</div>
-</li>
-<li>
-<div class="step-icon">✅</div>
-<div class="step-content">
-<strong>Procesamiento</strong>
-<p>Procesaremos según los términos acordados</p>
-</div>
-</li>
-</ul>
-</div>
-</div>
-<div class="confirmation-actions">
+<h2 data-es="¡Listo!" data-en="Done!">¡Listo!</h2>
+<p data-es="Su factura ha sido enviada exitosamente." data-en="Your invoice has been sent successfully.">Su factura ha sido enviada exitosamente.</p>
+
+<div class="success-actions">
 <button type="button" class="btn btn-primary" onclick="window.location.href='/'">
-<span>Enviar Otra Factura</span>
+<span data-es="Enviar Otra Factura" data-en="Submit Another Invoice">Enviar Otra Factura</span>
 </button>
 </div>
 </div>
