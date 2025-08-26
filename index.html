@@ -146,56 +146,57 @@
             </button>
           </div>
           
-          <!-- Progress Section -->
-          <div id="progress-section" class="progress-section" style="display: none;">
-            <div class="progress-container">
-              <div class="progress-header">
-                <h3 data-es="Procesando Facturas" data-en="Processing Invoices">Procesando Facturas</h3>
-                <span id="progress-counter" class="progress-counter">0 / 0</span>
-              </div>
-              
-              <div class="progress-steps">
-                <div class="step" id="step-storage">
-                  <div class="step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14,2 14,8 20,8"></polyline>
-                    </svg>
-                  </div>
-                  <div class="step-content">
-                    <span class="step-title" data-es="Almacenamiento" data-en="Storage">Almacenamiento</span>
-                    <span class="step-status" id="storage-status" data-es="Preparando..." data-en="Preparing...">Preparando...</span>
-                  </div>
+        </form>
+
+        <!-- Progress Section -->
+        <div id="progress-section" class="progress-section" style="display: none;">
+          <div class="progress-container">
+            <div class="progress-header">
+              <h3 data-es="Procesando Facturas" data-en="Processing Invoices">Procesando Facturas</h3>
+              <span id="progress-counter" class="progress-counter">0 / 0</span>
+            </div>
+            
+            <div class="progress-steps">
+              <div class="step" id="step-storage">
+                <div class="step-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                  </svg>
                 </div>
-                
-                <div class="step-divider"></div>
-                
-                <div class="step" id="step-webhook">
-                  <div class="step-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M8 3L4 7L8 11"></path>
-                      <path d="M4 7H20"></path>
-                      <path d="M16 13L20 17L16 21"></path>
-                      <path d="M20 17H4"></path>
-                    </svg>
-                  </div>
-                  <div class="step-content">
-                    <span class="step-title" data-es="Procesamiento" data-en="Processing">Procesamiento</span>
-                    <span class="step-status" id="webhook-status" data-es="Esperando..." data-en="Waiting...">Esperando...</span>
-                  </div>
+                <div class="step-content">
+                  <span class="step-title" data-es="Almacenamiento" data-en="Storage">Almacenamiento</span>
+                  <span class="step-status" id="storage-status" data-es="Preparando..." data-en="Preparing...">Preparando...</span>
                 </div>
               </div>
               
-              <div class="progress-bar-minimal">
-                <div id="progress-fill" class="progress-fill-minimal" style="width: 0%"></div>
-              </div>
+              <div class="step-divider"></div>
               
-              <div id="current-file" class="current-file">
-                <!-- Current processing file will be shown here -->
+              <div class="step" id="step-webhook">
+                <div class="step-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3L4 7L8 11"></path>
+                    <path d="M4 7H20"></path>
+                    <path d="M16 13L20 17L16 21"></path>
+                    <path d="M20 17H4"></path>
+                  </svg>
+                </div>
+                <div class="step-content">
+                  <span class="step-title" data-es="Procesamiento" data-en="Processing">Procesamiento</span>
+                  <span class="step-status" id="webhook-status" data-es="Esperando..." data-en="Waiting...">Esperando...</span>
+                </div>
               </div>
             </div>
+            
+            <div class="progress-bar-minimal">
+              <div id="progress-fill" class="progress-fill-minimal" style="width: 0%"></div>
+            </div>
+            
+            <div id="current-file" class="current-file">
+              <!-- Current processing file will be shown here -->
+            </div>
           </div>
-        </form>
+        </div>
 
         <div id="success-message" class="success-message" role="alert" aria-live="polite" style="display: none;">
           <svg class="success-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
