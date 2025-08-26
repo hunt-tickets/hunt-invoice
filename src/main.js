@@ -1,6 +1,6 @@
 import './style.css'
 import { translations } from './translations.js'
-import { getWebhookConfig, validateWebhookConfig } from './config.js'
+import { getWebhookConfig, validateWebhookConfig, supabaseConfig } from './config.js'
 import { jsPDF } from 'jspdf'
 
 class InvoiceForm {
@@ -377,18 +377,15 @@ class InvoiceForm {
       const totalCount = results.length
       
       if (successCount > 0) {
-        this.showSuccess({ 
-          status: 'success', 
-          processedCount: successCount,
-          totalCount: totalCount,
-          hasErrors: successCount < totalCount
-        })
+        // Wait a moment to show final completion state
+        setTimeout(() => {
+          console.info('🎉 All processes completed successfully, redirecting to /accept')
+          // Redirect to /accept route
+          window.location.href = '/accept'
+        }, 1500)
       } else {
         throw new Error('No se pudo procesar ningún archivo correctamente')
       }
-      
-      // Reset form after a delay to show results
-      setTimeout(() => this.resetForm(), 3000)
       
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -423,12 +420,46 @@ class InvoiceForm {
   }
 
   showProgressSection() {
+    // Hide all form elements except header during processing
+    this.hideFormElements()
+    
     const progressSection = document.getElementById('progress-section')
     progressSection.style.display = 'block'
     progressSection.scrollIntoView({ behavior: 'smooth' })
     
     this.updateProgressCounter(0, this.selectedFiles.length)
     this.resetSteps()
+  }
+
+  hideFormElements() {
+    // Hide intro section, form, and other elements during processing
+    const elementsToHide = [
+      '.intro-section',
+      '.invoice-form',
+      '#success-message'
+    ]
+    
+    elementsToHide.forEach(selector => {
+      const element = document.querySelector(selector)
+      if (element) {
+        element.style.display = 'none'
+      }
+    })
+  }
+
+  showFormElements() {
+    // Show form elements again
+    const elementsToShow = [
+      '.intro-section',
+      '.invoice-form'
+    ]
+    
+    elementsToShow.forEach(selector => {
+      const element = document.querySelector(selector)
+      if (element) {
+        element.style.display = 'block'
+      }
+    })
   }
 
   hideProgressSection() {
@@ -462,13 +493,25 @@ class InvoiceForm {
   updateStepStatus(step, status, message = '') {
     const stepElement = document.getElementById(`step-${step}`)
     const statusElement = document.getElementById(`${step}-status`)
+    const stepIcon = stepElement.querySelector('.step-icon')
     
     if (status === 'active') {
       stepElement.className = 'step active'
       statusElement.textContent = message || 'Procesando...'
+      // Add loading spinner to step icon
+      stepIcon.innerHTML = `
+        <div class="spinner"></div>
+      `
     } else if (status === 'completed') {
       stepElement.className = 'step completed'
       statusElement.textContent = message || 'Completado'
+      // Add checkmark icon
+      stepIcon.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22,4 12,14.01 9,11.01"></polyline>
+        </svg>
+      `
     }
   }
 
@@ -875,7 +918,7 @@ class InvoiceForm {
         fileName = `${uuid}${extension}`
       }
       
-      const uploadUrl = `https://db.hunt-tickets.com/storage/v1/object/invoice/main/${fileName}`
+      const uploadUrl = `${supabaseConfig.url}/storage/v1/object/invoice/main/${fileName}`
       
       console.info('🔄 Starting upload to Supabase Storage')
       console.info('📁 File details:', { 
@@ -887,16 +930,16 @@ class InvoiceForm {
       })
       console.info('🌐 Upload URL:', uploadUrl)
       console.info('🔑 Headers:', {
-        'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
-        'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+        'Authorization': `Bearer ${supabaseConfig.serviceKey}`,
+        'apikey': supabaseConfig.serviceKey,
         'Content-Type': fileToUpload.type || 'application/pdf'
       })
       
       const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
-          'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'Authorization': `Bearer ${supabaseConfig.serviceKey}`,
+          'apikey': supabaseConfig.serviceKey,
           'Content-Type': fileToUpload.type || 'application/pdf'
         },
         body: fileToUpload
@@ -926,7 +969,7 @@ class InvoiceForm {
       const result = {
         success: true,
         fileName,
-        url: signedUrl || `https://db.hunt-tickets.com/storage/v1/object/public/invoice/main/${fileName}`,
+        url: signedUrl || `${supabaseConfig.url}/storage/v1/object/public/invoice/main/${fileName}`,
         uuid,
         extension: isImage ? 'pdf' : this.getFileExtension(file.name).substring(1),
         originalName: file.name,
@@ -945,18 +988,18 @@ class InvoiceForm {
   }
 
   // Generate signed URL for file access
-  async generateSignedUrl(fileName, expiresIn = 3600) {
+  async generateSignedUrl(fileName, expiresIn = 7776000) { // 90 days = 90 * 24 * 60 * 60 = 7,776,000 seconds
     try {
       console.info('🔐 Generating signed URL for:', fileName)
       
       // Supabase Storage REST API endpoint for signed URLs
-      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}`
+      const signedUrlEndpoint = `${supabaseConfig.url}/storage/v1/object/sign/invoice/main/${fileName}`
       
       const response = await fetch(signedUrlEndpoint, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
-          'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'Authorization': `Bearer ${supabaseConfig.serviceKey}`,
+          'apikey': supabaseConfig.serviceKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -979,7 +1022,7 @@ class InvoiceForm {
       
       if (signedUrlPath) {
         // Construct full URL by combining base domain with signed path
-        const fullSignedUrl = `https://db.hunt-tickets.com/storage/v1${signedUrlPath}`
+        const fullSignedUrl = `${supabaseConfig.url}/storage/v1${signedUrlPath}`
         console.info('✅ Signed URL generated successfully:', fullSignedUrl)
         return fullSignedUrl
       } else {

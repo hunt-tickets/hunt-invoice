@@ -21,6 +21,15 @@ export const webhookConfig = {
   }
 }
 
+// Supabase configuration using environment variables
+export const supabaseConfig = {
+  // Database URL
+  url: import.meta.env.VITE_HUNT_DATABASE_URL || 'https://db.hunt-tickets.com',
+  
+  // Service key for server-side operations
+  serviceKey: import.meta.env.VITE_FORMS_SERVICE_KEY || null
+}
+
 // Get appropriate config based on environment
 export function getWebhookConfig() {
   const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development'
