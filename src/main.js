@@ -950,7 +950,7 @@ class InvoiceForm {
       console.info('🔐 Generating signed URL for:', fileName)
       
       // Supabase Storage REST API endpoint for signed URLs
-      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/${fileName}`
+      const signedUrlEndpoint = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}`
       
       const response = await fetch(signedUrlEndpoint, {
         method: 'POST',
