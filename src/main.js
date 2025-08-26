@@ -975,11 +975,13 @@ class InvoiceForm {
       const data = await response.json()
       console.info('📡 Signed URL response data:', data)
       
-      const signedUrl = data.signedURL || data.signedUrl || data.url
+      const signedUrlPath = data.signedURL || data.signedUrl || data.url
       
-      if (signedUrl) {
-        console.info('✅ Signed URL generated successfully')
-        return signedUrl
+      if (signedUrlPath) {
+        // Construct full URL by combining base domain with signed path
+        const fullSignedUrl = `https://db.hunt-tickets.com/storage/v1${signedUrlPath}`
+        console.info('✅ Signed URL generated successfully:', fullSignedUrl)
+        return fullSignedUrl
       } else {
         console.warn('⚠️ No signed URL in response, falling back to public URL')
         return null
