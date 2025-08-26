@@ -1,7 +1,7 @@
 // Webhook configuration for n8n integration
 export const webhookConfig = {
-  // n8n webhook URL - replace with your actual webhook URL
-  url: import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://tu-n8n-instance.com/webhook/invoice-processing',
+  // Railway webhook URL
+  url: import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://primary-o7vi-production.up.railway.app/webhook-test/ed0bbb3c-e4df-452e-8768-767a53843a94',
   
   // Request timeout in milliseconds
   timeout: 30000,

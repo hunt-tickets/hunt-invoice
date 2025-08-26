@@ -1,6 +1,7 @@
 import './style.css'
 import { translations } from './translations.js'
 import { getWebhookConfig, validateWebhookConfig } from './config.js'
+import { jsPDF } from 'jspdf'
 
 class InvoiceForm {
   constructor() {
@@ -365,40 +366,23 @@ class InvoiceForm {
         fileUploadResult = await this.uploadFileToStorage(this.selectedFile)
       }
       
-      const formData = new FormData()
-      
-      // Security: Sanitize all form data before submission
-      const formFields = new FormData(this.form)
-      for (let [key, value] of formFields.entries()) {
-        if (typeof value === 'string' && key !== 'invoice') {
-          formData.append(key, this.sanitizeInput(value))
-        }
-      }
-      
-      // Add file information instead of the actual file
-      if (fileUploadResult) {
-        formData.append('fileInfo', JSON.stringify({
-          fileName: fileUploadResult.fileName,
-          url: fileUploadResult.url,
-          uuid: fileUploadResult.uuid,
-          extension: fileUploadResult.extension,
-          originalName: fileUploadResult.originalName,
-          size: fileUploadResult.size,
-          type: fileUploadResult.type,
-          uploadedAt: new Date().toISOString()
-        }))
+      // Prepare webhook data with only UUID and file URL
+      const webhookData = {
+        uuid: fileUploadResult.uuid,
+        fileUrl: fileUploadResult.url
       }
       
       // Log submission attempt
       console.info('Invoice submission attempt', {
         timestamp: new Date().toISOString(),
-        fields: Array.from(formData.keys()),
+        uuid: fileUploadResult.uuid,
+        fileUrl: fileUploadResult.url,
         hasFile: !!this.selectedFile,
         fileUploaded: !!fileUploadResult
       })
       
-      // Submit to n8n webhook
-      const result = await this.submitToWebhook(formData)
+      // Submit to Railway webhook
+      const result = await this.submitToWebhook(webhookData)
       
       this.showSuccess(result)
       this.resetForm()
@@ -435,15 +419,17 @@ class InvoiceForm {
     }
   }
 
-  async submitToWebhook(formData) {
+  async submitToWebhook(webhookData) {
     let lastError = null
     
     for (let attempt = 0; attempt <= this.webhookConfig.retries; attempt++) {
       try {
-        console.info(`Sending invoice to n8n webhook (attempt ${attempt + 1}/${this.webhookConfig.retries + 1})`)
+        console.info(`Sending invoice data to Railway webhook (attempt ${attempt + 1}/${this.webhookConfig.retries + 1})`)
+        console.info('📡 Webhook data:', webhookData)
         
         const headers = {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
         
         // Add authentication if configured
@@ -451,26 +437,13 @@ class InvoiceForm {
           headers['Authorization'] = `Bearer ${this.webhookConfig.authToken}`
         }
         
-        // Add metadata for n8n processing
-        const metadata = {
-          timestamp: new Date().toISOString(),
-          language: this.currentLang,
-          userAgent: navigator.userAgent,
-          source: 'hunt-invoice-form',
-          formVersion: '1.0.0',
-          sessionId: this.sessionId,
-          clientFingerprint: this.generateClientFingerprint()
-        }
-        
-        formData.append('metadata', JSON.stringify(metadata))
-        
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), this.webhookConfig.timeout)
         
         const response = await fetch(this.webhookConfig.url, {
           method: 'POST',
           headers,
-          body: formData,
+          body: JSON.stringify(webhookData),
           signal: controller.signal
         })
         
@@ -482,9 +455,9 @@ class InvoiceForm {
         
         const result = await response.json()
         
-        console.info('Invoice successfully sent to n8n:', {
+        console.info('Invoice data successfully sent to Railway webhook:', {
           status: result.status || 'success',
-          processingId: result.processingId || null,
+          uuid: webhookData.uuid,
           timestamp: new Date().toISOString()
         })
         
@@ -512,7 +485,7 @@ class InvoiceForm {
     }
     
     // All attempts failed
-    throw new Error(`Failed to submit invoice after ${this.webhookConfig.retries + 1} attempts: ${lastError.message}`)
+    throw new Error(`Failed to submit invoice data to webhook after ${this.webhookConfig.retries + 1} attempts: ${lastError.message}`)
   }
 
   setLoading(loading) {
@@ -649,44 +622,148 @@ class InvoiceForm {
     return filename.toLowerCase().substring(filename.lastIndexOf('.'))
   }
 
+  // Convert image to PDF
+  async convertImageToPDF(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = function(event) {
+        try {
+          const img = new Image()
+          img.onload = function() {
+            const pdf = new jsPDF()
+            
+            // Calculate dimensions to fit the page while maintaining aspect ratio
+            const pageWidth = pdf.internal.pageSize.getWidth()
+            const pageHeight = pdf.internal.pageSize.getHeight()
+            const margin = 10
+            const maxWidth = pageWidth - (margin * 2)
+            const maxHeight = pageHeight - (margin * 2)
+            
+            let width = img.width
+            let height = img.height
+            
+            // Scale down if image is larger than page
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width
+              width = maxWidth
+            }
+            
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height
+              height = maxHeight
+            }
+            
+            // Center the image
+            const x = (pageWidth - width) / 2
+            const y = (pageHeight - height) / 2
+            
+            pdf.addImage(event.target.result, 'JPEG', x, y, width, height)
+            
+            // Convert PDF to blob
+            const pdfBlob = pdf.output('blob')
+            resolve(pdfBlob)
+          }
+          
+          img.onerror = function() {
+            reject(new Error('Failed to load image'))
+          }
+          
+          img.src = event.target.result
+        } catch (error) {
+          reject(error)
+        }
+      }
+      
+      reader.onerror = function() {
+        reject(new Error('Failed to read file'))
+      }
+      
+      reader.readAsDataURL(file)
+    })
+  }
+
   // Upload file to storage endpoint
   async uploadFileToStorage(file) {
     const uuid = this.generateUUID()
-    const extension = this.getFileExtension(file.name)
-    const fileName = `${uuid}${extension}`
-    const uploadUrl = `https://db.hunt-tickets.com/storage/v1/object/sign/invoice/main/${fileName}`
+    
+    // Check if file is an image that should be converted to PDF
+    const isImage = ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)
+    let fileToUpload = file
+    let fileName = `${uuid}.pdf`  // Always save as PDF now
     
     try {
-      console.info('Uploading file to storage:', { fileName, size: file.size, type: file.type })
+      if (isImage) {
+        console.info('🔄 Converting image to PDF...')
+        fileToUpload = await this.convertImageToPDF(file)
+        console.info('✅ Image converted to PDF successfully')
+      } else {
+        // If it's already a PDF, keep original extension
+        const extension = this.getFileExtension(file.name)
+        fileName = `${uuid}${extension}`
+      }
       
-      const formData = new FormData()
-      formData.append('file', file)
+      const uploadUrl = `https://db.hunt-tickets.com/storage/v1/object/invoice/main/${fileName}`
+      
+      console.info('🔄 Starting upload to Supabase Storage')
+      console.info('📁 File details:', { 
+        fileName, 
+        size: fileToUpload.size, 
+        type: fileToUpload.type || 'application/pdf', 
+        originalName: file.name,
+        converted: isImage ? 'Image converted to PDF' : 'Original file'
+      })
+      console.info('🌐 Upload URL:', uploadUrl)
+      console.info('🔑 Headers:', {
+        'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+        'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+        'Content-Type': fileToUpload.type || 'application/pdf'
+      })
       
       const response = await fetch(uploadUrl, {
         method: 'POST',
-        body: formData
+        headers: {
+          'Authorization': 'Bearer sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'apikey': 'sb_secret_XMfnljgPzNU8hx8eyCFquQ_qKivQI3j',
+          'Content-Type': fileToUpload.type || 'application/pdf'
+        },
+        body: fileToUpload
       })
       
+      console.info('📡 Response status:', response.status)
+      console.info('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      // Get response text to see the actual error message
+      const responseText = await response.text()
+      console.info('📡 Response body:', responseText)
+      
       if (!response.ok) {
-        throw new Error(`Storage upload failed: HTTP ${response.status}: ${response.statusText}`)
+        let errorMessage
+        try {
+          const errorData = JSON.parse(responseText)
+          errorMessage = errorData.message || errorData.error || responseText
+        } catch {
+          errorMessage = responseText
+        }
+        throw new Error(`Storage upload failed: HTTP ${response.status}: ${errorMessage}`)
       }
       
       const result = {
         success: true,
         fileName,
-        url: uploadUrl,
+        url: `https://db.hunt-tickets.com/storage/v1/object/public/invoice/main/${fileName}`,
         uuid,
-        extension: extension.substring(1), // Remove the dot
+        extension: isImage ? 'pdf' : this.getFileExtension(file.name).substring(1),
         originalName: file.name,
-        size: file.size,
-        type: file.type
+        size: fileToUpload.size,
+        type: fileToUpload.type || 'application/pdf',
+        converted: isImage
       }
       
-      console.info('File successfully uploaded to storage:', result)
+      console.info('✅ File successfully uploaded to storage:', result)
       return result
       
     } catch (error) {
-      console.error('Error uploading file to storage:', error)
+      console.error('❌ Error uploading file to storage:', error)
       throw new Error(`Failed to upload file: ${error.message}`)
     }
   }
